@@ -1,0 +1,75 @@
+{% extends "fashion_heritage/layout.html" %}
+
+    <title>{{ gown.name }}</title>
+
+    {% block body %}
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+
+        <h1 style="text-align: center";>{{ gown.name }}</h1>
+        <div style="text-align: center";><img src="/media/{{ gown.image }}" width="300"></div>
+        <p><strong>Country:</strong> {{ gown.country_of_origin }}</p>
+        <p><strong>Era:</strong> {{ gown.era }}</p>
+        <p><strong>Designer:</strong> {{ gown.designer }}</p>
+        <p><strong>History:</strong> {{ gown.history }}</p>
+        <p><strong>Cultural Significance:</strong> {{ gown.cultural_significance }}</p>
+        
+        {% if user.is_authenticated %}
+            <button id="like-btn" class="btn btn-danger btn-sm">❤️ Like</button>
+            <span id="like-count">{{ gown.likes.count }}</span>
+            <button id="save-btn" class="btn btn-outline-secondary btn-sm">🔖 Save</button>
+        {% endif %}
+
+        <script>
+        document.querySelector('#like-btn').addEventListener('click', function() {
+            fetch('/like/{{ gown.id }}', {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.liked) {
+                    document.querySelector('#like-btn').innerHTML = '❤️ Unlike';
+                } else {
+                    document.querySelector('#like-btn').innerHTML = '🤍 Like';
+
+                } 
+                document.querySelector('#like-count').innerHTML = data.likes_count;
+            });
+        });
+
+        document.querySelector('#save-btn').addEventListener('click', function() {
+            fetch('/save/{{ gown.id }}', {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.saved) {
+                    document.querySelector('#save-btn').innerHTML = '✅ Saved';
+                } else {
+                    document.querySelector('#save-btn').innerHTML = '🔖 Save';
+
+                } 
+            });
+        });
+    </script>
+    
+    <h5 class="mt-4">💬 Comments</h5>
+    {% for comment in comments %}
+       <p><strong>{{ comment.author.username }}</strong>: {{ comment.content }}</p>
+    {% endfor %}
+
+    {% if user.is_authenticated %}
+        <form action="{% url 'add_comment' gown.id %}" method="post">
+            {% csrf_token %}
+            <textarea name="content" placeholder="Add a comment..." class="form-control" rows="3"></textarea>
+            <button type="submit" class="btn btn-primary mt-2">Post</button>
+        </form>
+    {% endif %}
+
+             </div>
+        </div>
+    </div>       
+    {% endblock %}

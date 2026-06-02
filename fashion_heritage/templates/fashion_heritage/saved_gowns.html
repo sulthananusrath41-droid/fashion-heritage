@@ -1,0 +1,14 @@
+{% extends "fashion_heritage/layout.html" %}
+
+{% block body %}
+      <h1 style="text-align: center;">My Saved Gowns</h1>
+      <ul>
+      {% for save in saves %}
+           <li>
+             <a href="/gown/{{ save.gown.id }}">{{ save.gown.name }}</a>
+             <p>Country: {{ save.gown.country_of_origin }}</p>
+           </li>
+      {% endfor %}
+       </ul>
+{% endblock %}
+

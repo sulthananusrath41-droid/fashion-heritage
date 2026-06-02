@@ -1,0 +1,25 @@
+{% extends "fashion_heritage/layout.html" %}
+
+{% block body %}
+
+      <h1 style="text-align: center;">Fashion Heritage</h1>
+      <div class="container mt-4">
+        <div class="row">
+            {% for gown in gowns %}
+            <div class="col-12 col-md-4">
+              <div class="card mb-4">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <a href="/gown/{{ gown.id }}">{{ gown.name }}</a>
+                  </h5>
+                  <p class="card-text">Country: {{ gown.country_of_origin }}</p>
+                  <p class="card-text">Era: {{ gown.era }}</p>
+                </div>
+              </div>
+            </div>
+           
+    {% endfor %}
+       </div>
+      </div>
+{% endblock %}
+
