@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 # Create your views here.
 from .models import Gown, Comment, Like, Save, UserProfile
@@ -10,6 +10,14 @@ from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Q
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .serializers import GownSerializer
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authtoken.models import Token
+from .serializers import GownSerializer, RegisterSerializer
 
 def index(request):
     gowns = Gown.objects.all()
@@ -131,7 +139,7 @@ def saved_gowns(request):
     })
 
 def add_comment(request, gown_id):
-    gown = Gown.objects.get(id=gown_id)
+    gown = get_object_or_404(Gown, id=gown_id)
     if request.method == "POST":
         content = request.POST["content"]
         Comment.objects.create(
@@ -151,4 +159,96 @@ def search(request):
     return render(request, "fashion_heritage/search.html", {
         "gowns": gowns,
         "query": query
+    })
+
+@api_view(['GET'])
+def gown_list_api(request):
+    query = request.GET.get('q')
+    gowns = Gown.objects.all()
+    if query:
+        gowns = gowns.filter(
+            Q(name__icontains=query) |
+            Q(country_of_origin__icontains=query) |
+            Q(era__icontains=query)
+        )
+    serializer = GownSerializer(gowns, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def gown_detail_api(request, gown_id):
+    gown = Gown.objects.get(id=gown_id)
+    serializer = GownSerializer(gown, context={'request': request})  # 👈 context add பண்ணுங்க
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_api(request):
+    serializer = RegisterSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key, 'username': user.username})
+    return Response(serializer.errors, status=400)
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def saved_gowns_api(request):
+    saves = Save.objects.filter(user=request.user)
+    gowns = [save.gown for save in saves]
+    serializer = GownSerializer(gowns, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def like_gown_api(request, gown_id):
+    gown = get_object_or_404(Gown, id=gown_id)
+    like_exists = Like.objects.filter(user=request.user, gown=gown).exists()
+
+    if like_exists:
+        Like.objects.filter(user=request.user, gown=gown).delete()
+        liked = False
+    else:
+        Like.objects.create(user=request.user, gown=gown)
+        liked = True
+
+    return Response({
+        "liked": liked,
+        "likes_count": gown.likes.count()
+    })
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def save_gown_api(request, gown_id):
+    gown = get_object_or_404(Gown, id=gown_id)
+    save_exists = Save.objects.filter(user=request.user, gown=gown).exists()
+
+    if save_exists:
+        Save.objects.filter(user=request.user, gown=gown).delete()
+        saved = False
+    else:
+        Save.objects.create(user=request.user, gown=gown)
+        saved = True
+
+    return Response({"saved": saved})
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def add_comment_api(request, gown_id):
+    gown = Gown.objects.get(id=gown_id)
+    content = request.data.get('content')
+
+    if not content:
+        return Response({'error': 'Content required'}, status=400)
+
+    comment = Comment.objects.create(author=request.user, gown=gown, content=content)
+    return Response({
+        'id': comment.id,
+        'content': comment.content,
+        'author': request.user.username
     })
