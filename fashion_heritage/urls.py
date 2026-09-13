@@ -1,6 +1,6 @@
 from django.conf import settings
-from django.conf.urls.static import static
-from django.urls import path
+from django.urls import path, re_path
+from django.views.static import serve
 from rest_framework.authtoken.views import obtain_auth_token
 from . import views
 
@@ -25,5 +25,8 @@ urlpatterns = [
     path('api/saved-gowns/', views.saved_gowns_api, name='saved_gowns_api'),
 ]
 
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
