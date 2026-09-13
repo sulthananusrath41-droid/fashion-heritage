@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path
 from rest_framework.authtoken.views import obtain_auth_token
 from . import views
@@ -22,3 +24,6 @@ urlpatterns = [
     path('api/gowns/<int:gown_id>/comment/', views.add_comment_api, name='add_comment_api'),
     path('api/saved-gowns/', views.saved_gowns_api, name='saved_gowns_api'),
 ]
+
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
